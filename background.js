@@ -19,6 +19,33 @@ function broadcastFnState(isDown) {
             // noop
         }
     }
+    // Also broadcast to active tabs in each window to minimize overhead
+    try {
+        chrome.tabs.query({ active: true }, (tabs) => {
+            for (const t of tabs || []) {
+                if (!t.id) continue;
+                chrome.tabs.sendMessage(
+                    t.id,
+                    { type: "fn_state", down: !!isDown },
+                    () => {
+                        void chrome.runtime.lastError;
+                    }
+                );
+            }
+        });
+    } catch (_) {}
+}
+
+function sendFnStateToTab(tabId, isDown) {
+    try {
+        chrome.tabs.sendMessage(
+            tabId,
+            { type: "fn_state", down: !!isDown },
+            () => {
+                void chrome.runtime.lastError;
+            }
+        );
+    } catch (_) {}
 }
 
 function connectNative() {
@@ -62,6 +89,26 @@ chrome.runtime.onConnect.addListener((port) => {
         port.onDisconnect.addListener(() => {
             panelPorts.delete(port);
         });
+    }
+});
+
+// Respond to content scripts requesting the current state
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg && msg.type === "content_init") {
+        sendResponse({ type: "fn_state", down: fnDown });
+        return true;
+    }
+});
+
+// Keep newly activated tabs synchronized with current state
+chrome.tabs.onActivated.addListener(({ tabId }) => {
+    sendFnStateToTab(tabId, fnDown);
+});
+
+// After a tab finishes loading, ensure overlay reflects current state
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.status === "complete") {
+        sendFnStateToTab(tabId, fnDown);
     }
 });
 

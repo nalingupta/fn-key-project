@@ -13,12 +13,14 @@ This document explains the end-to-end design and implementation to reflect macOS
 
 ```
 [macOS Keyboard] → [Helper (Swift)] → Native Messaging (stdio + 4B length) →
-[Chrome Service Worker] → runtime Port → [Side Panel Page] → Button UI
+[Chrome Service Worker]
+   ↳ Port → [Side Panel Page] (button)
+   ↳ tabs.sendMessage → [Content Script] (top-of-page overlay)
 ```
 
 -   A small native helper observes system-wide modifier changes and emits JSON messages with 4‑byte little‑endian length prefix (Chrome Native Messaging framing).
--   A MV3 background service worker connects to the helper (native host) and relays the Fn state to the side panel via a `chrome.runtime.connect` port.
--   The side panel updates an on-screen button accordingly.
+-   A MV3 background service worker connects to the helper (native host) and relays the Fn state to the side panel via a `chrome.runtime.connect` port, and to tabs via `chrome.tabs.sendMessage`.
+-   The side panel updates an on-screen button; the content script renders a thin blue overlay at the top of each eligible page.
 
 ## Components and Files
 
@@ -91,7 +93,7 @@ Background (service worker)
 
 -   Connects to the host by name `nullin_fnkeyhelper_try` with `chrome.runtime.connectNative(name)`.
 -   Keeps `fnDown` boolean state.
--   Broadcasts state changes to any connected side panel port(s).
+-   Broadcasts state changes to any connected side panel port(s) and to active tabs.
 -   Reconnects on disconnect with simple backoff.
 
 Side Panel Page
@@ -100,6 +102,14 @@ Side Panel Page
 -   Listens for `fn_state` and updates the button color/text:
     -   `.fn-down` class applied when down → blue; removed when up → red.
 -   "Install Helper" button copies `chrome.runtime.id` and opens a download URL (local file during dev, HTTPS in production).
+
+Content Script Overlay
+
+-   Registered in `manifest.json` under `content_scripts` for `<all_urls>` at `document_start`.
+-   Injects a single `<div id="fn-overlay">` with `position:fixed;top:0;left:0;right:0;height:8px;background:#3b82f6;z-index:2147483647;pointer-events:none;`.
+-   Toggling is done by switching `opacity` between `0` and `1` on `{ type: "fn_state", down }`.
+-   Performs a handshake at load by sending `{ type: "content_init" }` and applying the returned `down` state.
+-   Handles early DOM states by deferring append to `DOMContentLoaded` when needed.
 
 ## Native Host Manifest (Chrome only)
 

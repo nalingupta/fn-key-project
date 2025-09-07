@@ -3,7 +3,8 @@
     "name": "Fn-key Side Panel",
     "version": "1.0.0",
     "description": "A simple Chrome extension that opens a side panel.",
-    "permissions": ["sidePanel", "nativeMessaging"],
+    "permissions": ["sidePanel", "nativeMessaging", "tabs"],
+    "host_permissions": ["<all_urls>"],
     "background": {
         "service_worker": "background.js"
     },
@@ -12,5 +13,12 @@
     },
     "side_panel": {
         "default_path": "sidepanel.html"
-    }
+    },
+    "content_scripts": [
+        {
+            "matches": ["<all_urls>"],
+            "js": ["content.js"],
+            "run_at": "document_start"
+        }
+    ]
 }

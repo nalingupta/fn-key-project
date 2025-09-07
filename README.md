@@ -14,7 +14,9 @@ Chrome extension + macOS helper that turns a side panel button blue while the Fn
 5. Grant macOS permissions when prompted (first run only):
     - Privacy & Security → Input Monitoring → enable `FnKey Helper`.
     - If also prompted for Accessibility, enable `FnKey Helper` there, too.
-6. Return to Chrome’s side panel. Hold Fn: the button turns blue; release: red.
+6. Return to Chrome. While the side panel is optional now:
+    - Side panel button toggles blue/red while Fn is held (as before).
+    - New: A thin blue bar appears at the top of normal web pages when Fn is held, even if the side panel is closed.
 
 ## Permissions
 
@@ -65,5 +67,5 @@ Chrome extension + macOS helper that turns a side panel button blue while the Fn
 
 ## Notes
 
--   Requires recent Chrome with Side Panel API support.
+-   Requires recent Chrome with Side Panel API support. Content scripts do not run on restricted pages (e.g., chrome://, Web Store, PDFs), so the blue bar won’t appear there.
 -   Data stays local; no keystrokes are logged beyond Fn state transitions.
