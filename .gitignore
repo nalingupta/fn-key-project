@@ -3,5 +3,6 @@
 node_modules/
 mac/fnkey-host/.build/
 mac/FnKey Helper.app/
+dist/FnKey Helper.app/
 dist/*.size
 dist/*.sha256
