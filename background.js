@@ -97,6 +97,43 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg && msg.type === "content_init") {
         sendResponse({ type: "fn_state", down: fnDown });
         return true;
+    } else if (msg && msg.type === "open_sidepanel") {
+        (async () => {
+            try {
+                if (!chrome.sidePanel || !chrome.sidePanel.open) {
+                    console.warn("background: sidePanel API unavailable");
+                    return;
+                }
+                const tab =
+                    sender && sender.tab
+                        ? sender.tab
+                        : await new Promise((resolve) => {
+                              chrome.tabs.query(
+                                  { active: true, currentWindow: true },
+                                  (tabs) => resolve((tabs || [])[0] || null)
+                              );
+                          });
+                if (!tab) {
+                    console.warn("background: no target tab for side panel");
+                    return;
+                }
+                // Ensure globally enabled and per-tab enabled
+                await chrome.sidePanel.setOptions({
+                    path: "sidepanel.html",
+                    enabled: true,
+                });
+                await chrome.sidePanel.setOptions({
+                    path: "sidepanel.html",
+                    enabled: true,
+                    tabId: tab.id,
+                });
+                await chrome.sidePanel.open({ windowId: tab.windowId });
+                console.log("background: side panel opened for tab", tab.id);
+            } catch (e) {
+                console.warn("background: failed to open side panel", e);
+            }
+        })();
+        return true;
     }
 });
 
